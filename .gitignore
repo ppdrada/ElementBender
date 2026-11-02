@@ -3,3 +3,8 @@
 
 # Files Python creates by itself when it runs the code
 __pycache__/
+
+# What PyInstaller creates when it builds the .exe (the .exe goes to the GitHub Releases)
+build/
+dist/
+*.spec
