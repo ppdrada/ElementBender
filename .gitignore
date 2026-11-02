@@ -1,0 +1,5 @@
+# Virtual environment (each person creates their own)
+.venv/
+
+# Files Python creates by itself when it runs the code
+__pycache__/
