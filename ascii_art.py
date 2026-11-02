@@ -6,7 +6,7 @@ COLS, ROWS = 96, 40
 CELL_W, CELL_H = 10, 12
 WIDTH, HEIGHT = COLS * CELL_W, ROWS * CELL_H
 # The first ten go from empty to full, the fire uses them as a ramp
-CHARS = " .:-=+*#%@~/oO^_\\"
+CHARS = " .:-=+*#%@~/oO^_\\|'"
 
 _ys, _xs = np.mgrid[0:ROWS, 0:COLS]
 CELL_X = ((_xs + 0.5) * CELL_W).astype(np.float32)

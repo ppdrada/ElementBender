@@ -1,18 +1,18 @@
 import cv2
 
+from air import Air
 from ascii_art import HEIGHT, WIDTH, clamp
 from earth import Earth
 from fire import Fire
 from water import Water
 
 ELEMENTS = ["fire", "water", "earth", "air"]
-EFFECTS = {"fire": Fire, "water": Water, "earth": Earth}  # elements that already have their animation
+EFFECTS = {"fire": Fire, "water": Water, "earth": Earth, "air": Air}
 FILL_SECONDS = 4
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 # (dim, bright) label colors in BGR
 LABEL_COLORS = {"fire": ((32, 74, 154), (71, 179, 255)), "water": ((154, 79, 31), (255, 191, 127)),
-                "earth": ((42, 90, 74), (101, 204, 156))}
-GRAY = (85, 85, 85)
+                "earth": ((42, 90, 74), (101, 204, 156)), "air": ((64, 96, 107), (138, 224, 255))}
 
 
 def centered_x(text, scale):
@@ -113,10 +113,7 @@ class Menu:
         cv2.putText(image, hint, (centered_x(hint, 0.45), HEIGHT // 2 - 50), FONT, 0.45, (136 * fade,) * 3, 1, cv2.LINE_AA)
         for i, (x, y, _, h) in enumerate(self.option_boxes):
             name = ELEMENTS[i]
-            if name in LABEL_COLORS:
-                dim, bright = LABEL_COLORS[name]
-                color = bright if self.lit and self.current == name else dim
-            else:
-                color = GRAY
+            dim, bright = LABEL_COLORS[name]
+            color = bright if self.lit and self.current == name else dim
             cv2.putText(image, f"{i + 1} {name}", (x, y + h - 4), FONT, 0.6, tuple(c * fade for c in color), 1, cv2.LINE_AA)
         return image
