@@ -4,6 +4,7 @@ import time
 
 import cv2
 
+from earth_scene import EarthScene
 from fire_scene import FireScene
 from hands import HandTracker
 from menu import Menu
@@ -12,7 +13,7 @@ from water_scene import WaterScene
 WINDOW = "Element Bender"
 # waitKey can't tell when a key is released, so a pressed key counts as held for a short time
 KEY_HOLD_SECONDS = 0.6
-SCENES = {"fire": FireScene, "water": WaterScene}  # elements whose bending scene is ready
+SCENES = {"fire": FireScene, "water": WaterScene, "earth": EarthScene}  # elements whose bending scene is ready
 ENTER_SECONDS = 1.5  # how long "entering ..." stays on screen
 
 
