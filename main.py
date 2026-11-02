@@ -4,12 +4,15 @@ import time
 
 import cv2
 
+from fire_scene import FireScene
 from hands import HandTracker
 from menu import Menu
 
 WINDOW = "Element Bender"
 # waitKey can't tell when a key is released, so a pressed key counts as held for a short time
 KEY_HOLD_SECONDS = 0.6
+SCENES = {"fire": FireScene}  # elements whose bending scene is ready
+ENTER_SECONDS = 1.5  # how long "entering ..." stays on screen
 
 
 def style_window(title):
@@ -27,10 +30,16 @@ def style_window(title):
 
 hands = HandTracker()
 menu = Menu()
+scene = None  # the bending scene of the chosen element, once it starts
+
+
+def on_mouse(*event):
+    (scene or menu).on_mouse(*event)
+
 
 camera = cv2.VideoCapture(0)
 cv2.namedWindow(WINDOW)
-cv2.setMouseCallback(WINDOW, menu.on_mouse)
+cv2.setMouseCallback(WINDOW, on_mouse)
 if sys.platform == "win32":
     style_window(WINDOW)
 
@@ -44,16 +53,25 @@ while True:
         break
 
     now = time.monotonic()
-    held = key_option if now - key_time < KEY_HOLD_SECONDS else None
-    menu.update(now - last, hands.count_fingers(frame), held)
+    fingers, hand = hands.track(frame)
+    if scene:
+        scene.update(now - last, fingers, hand)
+        image = scene.draw()
+    else:
+        held = key_option if now - key_time < KEY_HOLD_SECONDS else None
+        menu.update(now - last, fingers, held)
+        image = menu.draw()
+        if menu.chosen in SCENES and menu.entering > ENTER_SECONDS:
+            scene = SCENES[menu.chosen]()
     last = now
 
-    cv2.imshow(WINDOW, menu.draw())
+    cv2.imshow(WINDOW, image)
 
     key = cv2.waitKey(1) & 0xFF
     if ord("1") <= key <= ord("4"):
         key_option, key_time = key - ord("1"), now
-    if key == 27:  # Esc goes back to the menu
+    if key == 27 or (scene and scene.back):  # Esc or the back arrow go back to the menu
+        scene = None
         menu.reset()
     if key == ord("q") or cv2.getWindowProperty(WINDOW, cv2.WND_PROP_VISIBLE) < 1:
         break

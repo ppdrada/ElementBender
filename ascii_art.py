@@ -37,9 +37,9 @@ def make_glyphs():
 GLYPHS = make_glyphs()
 
 
-def glow(center_y, radius, bgr, strength):
-    """A soft light around the middle of the screen at height center_y, as one color per cell."""
-    distance = np.hypot(CELL_X - WIDTH / 2, CELL_Y - center_y)
+def glow(center_y, radius, bgr, strength, center_x=WIDTH / 2):
+    """A soft light around (center_x, center_y), in pixels, as one color per cell."""
+    distance = np.hypot(CELL_X - center_x, CELL_Y - center_y)
     return np.clip(1 - distance / radius, 0, 1)[..., None] * np.array(bgr, np.float32) * strength
 
 

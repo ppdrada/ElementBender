@@ -31,6 +31,7 @@ class Menu:
         self.lit = False
         self.hovered = None
         self.chosen = None
+        self.entering = 0.0  # seconds since an element was chosen
         self.option_boxes = self.layout_options()
 
     def layout_options(self):
@@ -72,6 +73,7 @@ class Menu:
         self.progress = 0.0
         self.lit = False
         self.chosen = None
+        self.entering = 0.0
         for effect in self.effects.values():
             effect.reset()
 
@@ -79,6 +81,7 @@ class Menu:
         """seconds: time since the last frame; fingers: 0-4; key_option: 0-3 or None."""
         self.seconds = seconds
         if self.chosen:
+            self.entering += seconds
             return
         pointed = [self.hovered, key_option, fingers - 1 if fingers else None]
         wanted = next((ELEMENTS[i] for i in pointed if i is not None and ELEMENTS[i] in self.effects), None)

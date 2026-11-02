@@ -8,6 +8,20 @@ from ascii_art import CELL_H, CELL_W, COLS, HEIGHT, ROWS, clamp, ease, glow, ren
 MAX_HEAT = 36
 
 
+def fire_colors(value):
+    """BGR colors for heat values from 0 to 1: dark red at the edges, orange and yellow inside, white when hottest."""
+    hot = value >= 0.35
+    red = np.where(hot, 255, 110 + value * 400)
+    green = np.where(hot, np.minimum(255, (value - 0.3) * 380), value * 40)
+    blue = np.where(hot, np.clip((value - 0.9) * 1200, 0, 255), value * 30)
+    return np.stack([blue, green, red], axis=-1)
+
+
+def fire_chars(value):
+    """Ramp characters for heat values from 0 to 1: emptier when cooler, fuller when hotter."""
+    return np.where(value < 0.03, 0, np.clip(np.rint(value * 9), 1, 9)).astype(int)
+
+
 class Fire:
     """ASCII fire: a candle that becomes a bonfire, spreads to the sides and fills the screen."""
 
@@ -104,14 +118,7 @@ class Fire:
     def draw(self, lit):
         """Returns the fire as a BGR image."""
         value = np.clip(self.heat / MAX_HEAT, 0, 1)
-        index = np.where(value < 0.03, 0, np.clip(np.rint(value * 9), 1, 9)).astype(int)
-
-        # Dark red at the edges, orange and yellow inside, white in the hottest part
-        hot = value >= 0.35
-        red = np.where(hot, 255, 110 + value * 400)
-        green = np.where(hot, np.minimum(255, (value - 0.3) * 380), value * 40)
-        blue = np.where(hot, np.clip((value - 0.9) * 1200, 0, 255), value * 30)
-        colors = np.stack([blue, green, red], axis=-1)
+        index, colors = fire_chars(value), fire_colors(value)
 
         background = None
         if lit:
