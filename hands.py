@@ -1,3 +1,4 @@
+import math
 import time
 from pathlib import Path
 
@@ -22,15 +23,22 @@ class HandTracker:
         ))
 
     def track(self, frame):
-        """Returns (raised fingers, position). The position is (x, y) from 0 to 1, mirrored like a mirror,
-        taken from the middle of the palm; without a hand it returns (0, None)."""
+        """Returns (raised fingers, position). Fingers go from 0 to 4 without the thumb, and 5 means the whole
+        hand is open, thumb too. The position is (x, y) from 0 to 1, mirrored like a mirror, taken from the
+        middle of the palm; without a hand it returns (0, None)."""
         # OpenCV gives colors as BGR, MediaPipe expects RGB
         image = mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         result = self.detector.detect_for_video(image, int(time.monotonic() * 1000))
         if not result.hand_landmarks:
             return 0, None
         hand = result.hand_landmarks[0]
-        # shortcut: a finger is "raised" when its tip is above its middle joint, so the hand must point up
-        fingers = sum(hand[tip].y < hand[joint].y for tip, joint in FINGERS)
-        palm = hand[9]  # where the middle finger meets the palm
+        wrist, palm = hand[0], hand[9]  # palm: where the middle finger meets the hand
+        # A finger is raised when its tip is farther from the wrist than its middle joint, in any direction
+        fingers = sum(distance(hand[tip], wrist) > distance(hand[joint], wrist) * 1.1 for tip, joint in FINGERS)
+        if fingers == 4 and distance(hand[4], palm) > distance(wrist, palm) * 0.55:
+            fingers = 5  # the thumb tip is far from the palm, so the thumb is open too
         return fingers, (1 - palm.x, palm.y)
+
+
+def distance(a, b):
+    return math.hypot(a.x - b.x, a.y - b.y)

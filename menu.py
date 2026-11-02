@@ -83,7 +83,7 @@ class Menu:
         if self.chosen:
             self.entering += seconds
             return
-        pointed = [self.hovered, key_option, fingers - 1 if fingers else None]
+        pointed = [self.hovered, key_option, fingers - 1 if 1 <= fingers <= len(ELEMENTS) else None]
         wanted = next((ELEMENTS[i] for i in pointed if i is not None and ELEMENTS[i] in self.effects), None)
         # A new element only starts after the current one has gone back to zero
         if wanted and (wanted == self.current or self.progress == 0):
