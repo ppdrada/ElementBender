@@ -3,34 +3,9 @@ import math
 import cv2
 import numpy as np
 
-COLS, ROWS = 96, 40
-CELL_W, CELL_H = 10, 12
-WIDTH, HEIGHT = COLS * CELL_W, ROWS * CELL_H
-RAMP = " .:-=+*#%@"
+from ascii_art import CELL_H, CELL_W, COLS, HEIGHT, ROWS, clamp, ease, glow, render
+
 MAX_HEAT = 36
-
-
-def clamp(value):
-    return max(0.0, min(1.0, value))
-
-
-def ease(value):
-    return value * value * (3 - 2 * value)
-
-
-def make_glyphs():
-    # One small black-and-white picture for each character of the ramp
-    glyphs = np.zeros((len(RAMP), CELL_H, CELL_W), np.uint8)
-    for i, char in enumerate(RAMP):
-        cv2.putText(glyphs[i], char, (1, CELL_H - 3), cv2.FONT_HERSHEY_PLAIN, 0.8, 255, 1, cv2.LINE_AA)
-    # The thin font looks dim, so make every drawn pixel stronger
-    return np.clip(glyphs.astype(np.int32) * 2, 0, 255).astype(np.uint8)
-
-
-GLYPHS = make_glyphs()
-# Distance of every cell from the bottom center (in pixels), used for the red glow
-_ys, _xs = np.mgrid[0:ROWS, 0:COLS]
-GLOW_DISTANCE = np.hypot((_xs + 0.5) * CELL_W - WIDTH / 2, (_ys + 0.5) * CELL_H - HEIGHT).astype(np.float32)
 
 
 class Fire:
@@ -51,10 +26,10 @@ class Fire:
         self.strength = 0.0
         self.bonfire = 0.0
 
-    def step(self, progress, lit):
+    def step(self, progress, lit, seconds):
         """Moves the fire one frame. progress goes from 0 (candle) to 1 (whole screen)."""
         rand = self.rng.random
-        self.time += 1 / 24
+        self.time += seconds
         t = self.time
         center = COLS / 2
 
@@ -136,19 +111,14 @@ class Fire:
         red = np.where(hot, 255, 110 + value * 400)
         green = np.where(hot, np.minimum(255, (value - 0.3) * 380), value * 40)
         blue = np.where(hot, np.clip((value - 0.9) * 1200, 0, 255), value * 30)
-        colors = np.stack([blue, green, red], axis=-1).astype(np.uint8)
+        colors = np.stack([blue, green, red], axis=-1)
 
-        # Put each character picture in its cell, painted with its color
-        mask = GLYPHS[index].transpose(0, 2, 1, 3).reshape(HEIGHT, WIDTH)
-        colors = cv2.resize(colors, (WIDTH, HEIGHT), interpolation=cv2.INTER_NEAREST)
-        image = cv2.multiply(colors, cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR), scale=1 / 255)
-
+        background = None
         if lit:
             pulse = 0.85 + 0.15 * math.sin(self.time * 9) + 0.1 * self.rng.random()
             radius = 80 + self.bonfire * 250 + self.strength * 600
-            glow = np.clip(1 - GLOW_DISTANCE / radius, 0, 1) * (0.3 + self.bonfire * 0.15 + self.strength * 0.35) * pulse
-            glow = np.stack([glow * 5, glow * 15, glow * 150], axis=-1).astype(np.uint8)
-            image = cv2.max(image, cv2.resize(glow, (WIDTH, HEIGHT), interpolation=cv2.INTER_LINEAR))
+            background = glow(HEIGHT, radius, (5, 15, 150), (0.3 + self.bonfire * 0.15 + self.strength * 0.35) * pulse)
+        image = render(index, colors, background)
 
         for x, y, _, _, life in self.embers:
             color = (60, 150 + life * 100, 255)

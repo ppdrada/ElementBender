@@ -1,13 +1,16 @@
 import cv2
 
-from fire import HEIGHT, WIDTH, Fire, clamp
+from ascii_art import HEIGHT, WIDTH, clamp
+from fire import Fire
+from water import Water
 
 ELEMENTS = ["fire", "water", "earth", "air"]
-READY = ["fire"]  # elements that already have their animation
+EFFECTS = {"fire": Fire, "water": Water}  # elements that already have their animation
 FILL_SECONDS = 4
 FONT = cv2.FONT_HERSHEY_SIMPLEX
-# Colors are BGR
-DIM_FIRE, BRIGHT_FIRE, GRAY = (32, 74, 154), (71, 179, 255), (85, 85, 85)
+# (dim, bright) label colors in BGR
+LABEL_COLORS = {"fire": ((32, 74, 154), (71, 179, 255)), "water": ((154, 79, 31), (255, 191, 127))}
+GRAY = (85, 85, 85)
 
 
 def centered_x(text, scale):
@@ -19,8 +22,10 @@ class Menu:
     """Black screen with the four elements; hover, fingers or a key fill an element, a click enters it."""
 
     def __init__(self):
-        self.fire = Fire()
+        self.effects = {name: effect() for name, effect in EFFECTS.items()}
+        self.current = "fire"
         self.progress = 0.0
+        self.seconds = 0.0
         self.lit = False
         self.hovered = None
         self.chosen = None
@@ -49,8 +54,14 @@ class Menu:
         if event == cv2.EVENT_LBUTTONDOWN and self.hovered is not None:
             self.choose(ELEMENTS[self.hovered])
 
+    def switch_to(self, element):
+        if element != self.current:
+            self.effects[element].reset()
+            self.current = element
+
     def choose(self, element):
-        if element in READY and self.chosen is None:
+        if element in self.effects and self.chosen is None:
+            self.switch_to(element)
             self.chosen = element
             self.progress = 1.0
             self.lit = True
@@ -59,33 +70,39 @@ class Menu:
         self.progress = 0.0
         self.lit = False
         self.chosen = None
-        self.fire.reset()
+        for effect in self.effects.values():
+            effect.reset()
 
     def update(self, seconds, fingers, key_option):
         """seconds: time since the last frame; fingers: 0-4; key_option: 0-3 or None."""
+        self.seconds = seconds
         if self.chosen:
             return
-        options = {self.hovered, key_option, fingers - 1 if fingers else None}
-        if 0 in options:  # only fire is ready for now
+        pointed = [self.hovered, key_option, fingers - 1 if fingers else None]
+        wanted = next((ELEMENTS[i] for i in pointed if i is not None and ELEMENTS[i] in self.effects), None)
+        # A new element only starts after the current one has gone back to zero
+        if wanted and (wanted == self.current or self.progress == 0):
+            self.switch_to(wanted)
             self.lit = True
             self.progress = min(1.0, self.progress + seconds / FILL_SECONDS)
             if self.progress >= 1:
-                self.choose("fire")
+                self.choose(wanted)
         else:
             self.progress = max(0.0, self.progress - seconds * 1.2)
             if self.progress == 0:
                 self.lit = False
 
     def draw(self):
-        self.fire.step(self.progress, self.lit)
-        image = self.fire.draw(self.lit)
+        effect = self.effects[self.current]
+        effect.step(self.progress, self.lit, self.seconds)
+        image = effect.draw(self.lit)
 
         if self.chosen:
             text = f"entering {self.chosen}..."
             cv2.putText(image, text, (centered_x(text, 0.8), HEIGHT // 2), FONT, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
             return image
 
-        # The menu text fades out quickly when the fire starts
+        # The menu text fades out quickly when an element starts
         fade = clamp(1 - self.progress * 5)
         if fade == 0:
             return image
@@ -93,9 +110,11 @@ class Menu:
         cv2.putText(image, title, (centered_x(title, 0.9), HEIGHT // 2 - 80), FONT, 0.9, (221 * fade,) * 3, 1, cv2.LINE_AA)
         cv2.putText(image, hint, (centered_x(hint, 0.45), HEIGHT // 2 - 50), FONT, 0.45, (136 * fade,) * 3, 1, cv2.LINE_AA)
         for i, (x, y, _, h) in enumerate(self.option_boxes):
-            if i == 0:
-                color = BRIGHT_FIRE if self.lit else DIM_FIRE
+            name = ELEMENTS[i]
+            if name in LABEL_COLORS:
+                dim, bright = LABEL_COLORS[name]
+                color = bright if self.lit and self.current == name else dim
             else:
                 color = GRAY
-            cv2.putText(image, f"{i + 1} {ELEMENTS[i]}", (x, y + h - 4), FONT, 0.6, tuple(c * fade for c in color), 1, cv2.LINE_AA)
+            cv2.putText(image, f"{i + 1} {name}", (x, y + h - 4), FONT, 0.6, tuple(c * fade for c in color), 1, cv2.LINE_AA)
         return image
