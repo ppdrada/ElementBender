@@ -1,15 +1,17 @@
 import cv2
 
 from ascii_art import HEIGHT, WIDTH, clamp
+from earth import Earth
 from fire import Fire
 from water import Water
 
 ELEMENTS = ["fire", "water", "earth", "air"]
-EFFECTS = {"fire": Fire, "water": Water}  # elements that already have their animation
+EFFECTS = {"fire": Fire, "water": Water, "earth": Earth}  # elements that already have their animation
 FILL_SECONDS = 4
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 # (dim, bright) label colors in BGR
-LABEL_COLORS = {"fire": ((32, 74, 154), (71, 179, 255)), "water": ((154, 79, 31), (255, 191, 127))}
+LABEL_COLORS = {"fire": ((32, 74, 154), (71, 179, 255)), "water": ((154, 79, 31), (255, 191, 127)),
+                "earth": ((42, 90, 74), (101, 204, 156))}
 GRAY = (85, 85, 85)
 
 
