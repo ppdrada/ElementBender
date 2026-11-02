@@ -9,6 +9,7 @@ The name is inspired by the benders of *Avatar: The Last Airbender*.
 - **Python 3.11+**
 - **OpenCV**: opens the webcam and shows the image
 - **MediaPipe**: finds your hands in the image
+- **NumPy**: draws the ASCII fire
 
 ## Installation
 
